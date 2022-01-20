@@ -1,0 +1,70 @@
+--CÂU 1: TẠO CẤU TRÚC CƠ SỞ DỮ LIỆU
+
+CREATE DATABASE QuanLyCuaHang 
+
+CREATE TABLE DMKhach (
+MaKhach nchar(10) NOT NULL PRIMARY KEY,
+TenKhach nvarchar(10) NOT NULL,
+DiaChi nvarchar(10) NOT NULL,
+DienThoai nchar(10) NOT NULL
+)
+
+CREATE TABLE DMHang (
+MaHang nvarchar(10) NOT NULL PRIMARY KEY,
+TenHang nvarchar(10) NOT NULL,
+DVT nchar(10) NOT NULL
+)
+
+CREATE TABLE HoaDonBan (
+SoHD nvarchar(10) not null PRIMARY KEY,
+MaKhach nvarchar(10) NOT NULL,
+NgayHD DATETIME ,
+TongTien nchar(10)  NOT NULL 
+)
+
+
+CREATE TABLE ChiTietHoaDon (
+SoHD nvarchar(10) not null PRIMARY KEY,
+MaHang NVARCHAR(10) NOT NULL,
+SoLuong NCHAR(10) NOT NULL,
+DonGia NCHAR(10) NOT NULL)
+ 
+
+--CÂU 2: TẠO VIEW
+
+CREATE VIEW cau2 AS
+SELECT Mathang.MaHang, TenHang FROM DMHang inner join ChiTietHoaDon
+ON DMHang.MaHang = ChiTietHoaDon.MaHang
+inner join HoaDonBan ON HoaDonBan.SoHD = ChiTietHoaDon.SoHD
+GROUP BY HoaDonBan.MaKhach
+HAVING count(MaKhach) > 2
+
+
+--CÂU 3: TẠO HÀM ĐƯA RA DOANH THU THÁNG
+create function f_cau3 (@Thang as datetime)
+returns @bang table (@mahang, @tenhang, @doanhthu)
+as
+begin
+	insert into @bang
+	select MaHang, TenHang, TongTien from DMHang inner join ChiTietHoaDon
+	on DMHang.MaHang = ChiTietHoaDon.MaHang inner join HoaDonBan 
+	on ChITietHoaDon.SoHD = HoaDonBan.SoHD
+	group by month(NgayHD)= @Thang
+end
+
+
+-- CÂU 4: TẠO TRIGGER
+create trigger trigeer_cau4
+on DMHang
+for delete
+as
+begin
+	if exists (select MaHang from ChiTietHoaDon inner join deleted on deleted.MaHang = ChiTietHoaDon.MaHang)
+		begin
+			raiserror (N'Khong the xoa duoc',16,1)
+		end
+	else
+		begin
+			raiserror (N'Da xoa mat hang!',16,1)
+		end
+

@@ -1,0 +1,42 @@
+--Câu 1: Cho bảng NHANVIEN (MaNV, Hoten, Ngaysinh,…).Viết một trigger để đảm 
+--bảo rằng khi thêm một nhân viên mới vào thì tuổi của nhân viên không được >=45
+create trigger t_checkAge
+on NhanVien
+after insert 
+as
+begin
+	declare @tuoimoi int
+	set @tuoimoi = (select year(getdate()) - year(NgaySinh) as tuoinhanvien from inserted) 
+	if (@tuoimoi > 45)
+		begin
+			raiserror(N'Nhân viên không được quá 45 tuổi!', 16,1);
+		end
+end
+--Câu 2: Tạo trigger để tránh xoá 2 bản ghi trong bảng Nhanvien đồng thời.
+-- https://dba.stackexchange.com/questions/29763/trigger-in-mysql-to-disallow-multiple-row-deletions-at-a-time-on-a-table
+-- SELECT @@SPID as SessionID: sessionID in sql
+create table trigger_check_deletes 
+(
+	delete_count int default 0,
+	conn_id int not null primary key,
+)
+
+create trigger t_no_delete2row
+on NhanVien
+for delete
+as
+begin
+	declare @count int
+	insert into trigger_check_deletes (conn_id) values (connectionid())
+	select @count = (select delete_count from trigger_check_deletes where conn_id = connectionid())
+	set @coutn = @count+1
+	update trigger_check_deletes set delete_count = @count where conn_id = connectionid()
+
+	if @count > 1 
+	begin
+		print 'khong the xoa 2 ban ghi cung 1 luc'
+	end
+end
+
+select connection_id from sys.dm_exec_connections
+select * from sys.dm_exec_connections
